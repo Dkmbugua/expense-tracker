@@ -36,31 +36,31 @@ const LandingPage = () => {
 
       {/* Sections */}
       <section ref={homeRef} className="hero">
-  <div className="container">
-    <div className="hero-content">
-      <h1 className="hero-title">Master Your Finances with ExpenseTracker</h1>
-      <p className="hero-subtitle">
-        Smart tools for budgeting, saving, and spending wisely—designed for Kenyan students!
-      </p>
-      <div className="cta-buttons">
-        <Link to="/signup" className="cta-button primary">
-          Get Started
-        </Link>
-        <Link to="/login" className="cta-button secondary">
-          Learn More
-        </Link>
-      </div>
-    </div>
-  </div>
-</section>
+        <div className="container">
+          <div className="hero-content">
+            <h1 className="hero-title">Master Your Finances with ExpenseTracker</h1>
+            <p className="hero-subtitle">
+              Smart tools for budgeting, saving, and spending wisely—designed for Kenyan students!
+            </p>
+            <div className="cta-buttons">
+              <Link to="/signup" className="cta-button primary">
+                Get Started
+              </Link>
+              <Link to="/login" className="cta-button secondary">
+                Learn More
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section ref={aboutRef} className="about">
-      <div className="container">
-    <h2>About ExpenseTracker</h2>
-    <p>
-      ExpenseTracker is your ultimate financial companion, built specifically for KCA University students and other Kenyan university learners. Since 2023, we’ve helped thousands of students—like you at KCA’s main campus in Ruaraka or the Town Campus in Nairobi CBD—track every shilling, whether it’s tuition fees, rent in Ruaraka, or those daily matatu rides to Thika Road. Our app empowers you to set financial goals (like saving for a Maasai Mara trip or a new laptop for your IT classes), receive real-time M-Pesa alerts to stay on budget, and master your money, Nairobi style. With KCA’s focus on accountancy and financial management, our tool complements your studies and prepares you for a thriving career in Kenya’s competitive job market. Join thousands of KCA students who’ve taken control of their finances and graduated debt-free!
-    </p>
-  </div>
+        <div className="container">
+          <h2>About ExpenseTracker</h2>
+          <p>
+            ExpenseTracker is your ultimate financial companion, built specifically for KCA University students and other Kenyan university learners. Since 2023, we’ve helped thousands of students—
+          </p>
+        </div>
       </section>
 
       <section ref={testimonialsRef} className="testimonials">

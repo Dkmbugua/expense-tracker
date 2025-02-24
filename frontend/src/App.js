@@ -1,19 +1,21 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
-import './App.css';
+import LoginForm from './components/LoginForm';
+import SignUpForm from './components/SignUpForm';
+import Dashboard from './components/Dashboard';
 
-function App() {
+const App = () => {
   return (
     <Router>
-      <div className="App">
-        <Routes>
-          <Route exact path="/" element={<LandingPage />} />
-          {/* Add routes for signup, login, and dashboard here */}
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/signup" element={<SignUpForm />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
     </Router>
   );
-}
+};
 
 export default App;
