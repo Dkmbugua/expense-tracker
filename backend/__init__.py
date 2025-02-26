@@ -6,12 +6,17 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 import os
 
+
 # Initialize the database
 db = SQLAlchemy()
 
 # Initialize Flask-Login globally
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # Redirect to login if not authenticated
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def load_user(user_id):
     from .models import User
@@ -42,10 +47,12 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.ai import ai_bp
     from .routes.expenses import expenses_bp
+    from .routes.dashboard import dashboard_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(ai_bp, url_prefix='/ai')
     app.register_blueprint(expenses_bp, url_prefix='/expenses')
+    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
     
     @app.route('/')
     def serve():
