@@ -1,7 +1,6 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask import render_template
 from flask_login import LoginManager
 
 # Initialize the database
@@ -19,12 +18,13 @@ def create_app():
     app = Flask(__name__)  # Initialize the Flask app
     
     # Configuration for SQLAlchemy
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expenses.db'  # Database path
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expense_tracker.db'  # Database path
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Disable modification tracking (for performance)
     app.config['SECRET_KEY'] = 'your-secret-key-here'  # Replace with a secure secret key
     
     # Initialize Flask-Login with the app
     login_manager.init_app(app)
+    login_manager.user_loader(load_user)
     
     CORS(app)  # Enable Cross-Origin Resource Sharing
     
