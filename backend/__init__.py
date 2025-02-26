@@ -1,9 +1,10 @@
-from flask import Flask
+import logging
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask import render_template
 from flask_login import LoginManager
 from flask_migrate import Migrate
+import os
 
 # Initialize the database
 db = SQLAlchemy()
@@ -17,10 +18,10 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 def create_app():
-    app = Flask(__name__)  # Initialize the Flask app
+    app = Flask(__name__, static_folder='../frontend/build', static_url_path='')  # Initialize the Flask app
     
     # Configuration for SQLAlchemy
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expenses.db'  # Database path
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expense_tracker.db'  # Database path
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Disable modification tracking (for performance)
     app.config['SECRET_KEY'] = 'your-secret-key-here'  # Replace with a secure secret key
     
@@ -34,6 +35,9 @@ def create_app():
     # Initialize Flask-Migrate
     migrate = Migrate(app, db)
     
+    # Set up logging
+    logging.basicConfig(level=logging.DEBUG)
+    
     # Import and register blueprints from the routes directory
     from .routes.auth import auth_bp
     from .routes.ai import ai_bp
@@ -44,11 +48,11 @@ def create_app():
     app.register_blueprint(expenses_bp, url_prefix='/expenses')
     
     @app.route('/')
-    def home():
-        return "Expense Tracker Backend is Running!"
-    
-    @app.route('/landing')  # Changed to avoid conflict with home
-    def landing_page():
-        return render_template('landing.html')
+    def serve():
+        return send_from_directory(app.static_folder, 'index.html')
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return send_from_directory(app.static_folder, 'index.html')
 
     return app
