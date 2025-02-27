@@ -24,13 +24,15 @@ const SignUpForm = () => {
     }
 
     try {
-      const response = await axios.post('/auth/register', { username, password });
+      const response = await axios.post('http://localhost:5000/auth/register', { username, password }, {
+        withCredentials: true // Allow cookies if using sessions
+      });
       alert('Registration successful');
-      console.log(response.data);
+      console.log('Registration response:', response.data);
       navigate('/login');
     } catch (error) {
       console.error('Error registering', error);
-      setError('Error registering');
+      setError(error.response?.data?.message || 'Error registering');
     }
   };
 

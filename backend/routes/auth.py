@@ -12,12 +12,15 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
     if user and check_password_hash(user.password, data['password']):
         login_user(user)
-        return jsonify({"message": "Login successful"}), 200
+        token = f'token_{user.username}'  # Simple token
+        return jsonify({"message": "Login successful", "token": token}), 200
     return jsonify({"message": "Invalid credentials"}), 401
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({"message": "Username already taken"}), 400
     hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
     new_user = User(username=data['username'], password=hashed_password)
     db.session.add(new_user)

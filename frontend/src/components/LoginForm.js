@@ -18,13 +18,16 @@ const LoginForm = () => {
     }
 
     try {
-      const response = await axios.post('/auth/login', { username, password });
+      const response = await axios.post('http://localhost:5000/auth/login', { username, password }, {
+        withCredentials: true // Allow cookies if using sessions
+      });
+      localStorage.setItem('token', response.data.token); // Store the token from backend
       alert('Login successful');
-      console.log(response.data);
+      console.log('Login response:', response.data);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error logging in', error);
-      setError('Invalid credentials');
+      setError(error.response?.data?.message || 'Invalid credentials');
     }
   };
 
