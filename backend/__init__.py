@@ -1,32 +1,36 @@
-# In backend/__init__.py
-from flask import Flask, request, send_from_directory
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from flask_login import LoginManager, login_user
+from flask_login import LoginManager
 from flask_migrate import Migrate
 import os
+from flask_jwt_extended import JWTManager
 
-
-db = SQLAlchemy()
+db = SQLAlchemy()  # ✅ Ensure this is the ONLY instance of SQLAlchemy
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+jwt = JWTManager()  # ✅ Initialize JWT
 
 def create_app():
-    app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
+    app = Flask(__name__, static_folder='../frontend/build', static_url_path='/')
+
+    # ✅ Correct JWT configuration
+    
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour expiration
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expense_tracker.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.urandom(24).hex()
     app.config['SESSION_TYPE'] = 'filesystem'
 
+    db.init_app(app)  # ✅ Initialize DB first
+    jwt.init_app(app)  # ✅ Initialize JWT AFTER setting configs
     login_manager.init_app(app)
     CORS(app, supports_credentials=True)
-    db.init_app(app)
     migrate = Migrate(app, db)
 
+    from .models import User  # ✅ Move User import after db.init_app(app)
+
+    # ✅ Import Blueprints
     from .routes.auth import auth_bp
     from .routes.expenses import expenses_bp
     from .routes.dashboard import dashboard_bp
@@ -43,15 +47,9 @@ def create_app():
     def not_found(e):
         return send_from_directory(app.static_folder, 'index.html')
 
-    @app.before_request
-    def verify_token():
-        if request.path.startswith('/static/') or request.path == '/':
-            return
-        token = request.headers.get('Authorization')
-        if token and token.startswith('token_'):
-            username = token.split('_')[1]
-            user = User.query.filter_by(username=username).first()
-            if user and not current_user.is_authenticated:
-                login_user(user)
-
     return app
+
+@login_manager.user_loader
+def load_user(user_id):
+    from .models import User  # Avoid top-level import
+    return User.query.get(int(user_id))

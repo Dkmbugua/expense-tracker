@@ -1,80 +1,101 @@
 from flask import Blueprint, jsonify
-from flask_login import login_required, current_user
-from ..models import Expense
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm import joinedload
+from backend.models import User, Expense, Income, Category
 from .. import db
 from datetime import datetime, timedelta
 
+# Define Blueprint for dashboard
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/summary', methods=['GET'])
-@login_required
+@jwt_required()
 def get_dashboard_summary():
-    user_id = current_user.id
-    today = datetime.today()
+    user_id = get_jwt_identity()
+
+    # 🔍 Debugging log
+    print(f"Fetching dashboard summary for user: {user_id}")
+
+    # Ensure user exists
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    today = datetime.utcnow().date()
     start_of_month = today.replace(day=1)
 
-    # Expenses and Income this month
-    expenses_month = db.session.query(db.func.sum(Expense.amount)).filter(
+    # Fetch total expenses & income for the month
+    total_expenses = db.session.query(db.func.sum(Expense.amount)).filter(
         Expense.user_id == user_id,
-        Expense.date >= start_of_month,
-        Expense.is_income == False
-    ).scalar() or 0
-    income_month = db.session.query(db.func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id,
-        Expense.date >= start_of_month,
-        Expense.is_income == True
-    ).scalar() or 0
-    total_spending_month = expenses_month  # Only expenses count toward spending
-    total_income_month = income_month
-
-    # Today's expenses and income
-    today_start = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    total_spending_today = db.session.query(db.func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id,
-        Expense.date >= today_start,
-        Expense.is_income == False
-    ).scalar() or 0
-    total_income_today = db.session.query(db.func.sum(Expense.amount)).filter(
-        Expense.user_id == user_id,
-        Expense.date >= today_start,
-        Expense.is_income == True
+        Expense.date >= start_of_month
     ).scalar() or 0
 
-    # Average daily spend (expenses only)
-    days_in_month = (today - start_of_month).days + 1
-    average_daily_spend = total_spending_month / days_in_month if days_in_month else 0
+    total_income = db.session.query(db.func.sum(Income.amount)).filter(
+        Income.user_id == user_id,
+        Income.date >= start_of_month
+    ).scalar() or 0
 
-    # Expense and income list
-    items = Expense.query.filter_by(user_id=user_id).all()
-    item_list = [{
-        "id": i.id,
-        "date": i.date.strftime('%Y-%m-%d'),
-        "description": i.name,
-        "category": i.category.name,
-        "amount": i.amount,
-        "is_income": i.is_income
-    } for i in items]
+    total_balance = total_income - total_expenses
 
-    # Spending trend (last 30 days, expenses only)
-    last_30_days = today - timedelta(days=30)
-    spending_trend = db.session.query(
-        db.func.date(Expense.date).label('date'),
-        db.func.sum(Expense.amount).label('total')
-    ).filter(
+    # Fetch today's expenses & income
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    today_expenses = db.session.query(db.func.sum(Expense.amount)).filter(
         Expense.user_id == user_id,
-        Expense.date >= last_30_days,
-        Expense.is_income == False
-    ).group_by('date').order_by('date').all()
-    spending_trend = [{"date": str(date), "total": total} for date, total in spending_trend]
+        Expense.date >= today_start
+    ).scalar() or 0
+
+    today_income = db.session.query(db.func.sum(Income.amount)).filter(
+        Income.user_id == user_id,
+        Income.date >= today_start
+    ).scalar() or 0
+
+    # Fetch expenses by category
+    category_expenses = db.session.query(
+        Category.name, db.func.sum(Expense.amount)
+    ).join(Expense).filter(
+        Expense.user_id == user_id,
+        Expense.date >= start_of_month
+    ).group_by(Category.name).all()
+
+    category_data = {name: total for name, total in category_expenses}
+
+    # Fetch transactions
+    transactions = (
+        db.session.query(Expense)
+        .filter_by(user_id=user_id)
+        .options(joinedload(Expense.category_expense))
+        .all()
+    ) + (
+        db.session.query(Income)
+        .filter_by(user_id=user_id)
+        .all()
+    )
+
+    transaction_list = [
+        {
+            "id": t.id,
+            "date": t.date.strftime('%Y-%m-%d'),
+            "description": t.name,
+            "category": t.category_expense.name if isinstance(t, Expense) and t.category_expense else "Income",
+            "amount": t.amount,
+            "type": "Income" if isinstance(t, Income) else "Expense"
+        }
+        for t in transactions
+    ]
 
     summary = {
-        "username": current_user.username,
-        "total_spending_month": total_spending_month,
-        "total_income_month": total_income_month,
-        "total_spending_today": total_spending_today,
-        "total_income_today": total_income_today,
-        "average_daily_spend": average_daily_spend,
-        "items": item_list,
-        "spending_trend": spending_trend
+        "username": user.username,
+        "total_balance": f"Ksh {total_balance:.2f}",
+        "total_expenses": f"Ksh {total_expenses:.2f}",
+        "total_income": f"Ksh {total_income:.2f}",
+        "today_expenses": f"Ksh {today_expenses:.2f}",
+        "today_income": f"Ksh {today_income:.2f}",
+        "category_expenses": category_data,
+        "transactions": transaction_list
     }
+
+    # 🔍 Debugging log
+    print(f"Dashboard Summary Data: {summary}")
+
     return jsonify(summary), 200

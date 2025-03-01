@@ -1,289 +1,132 @@
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './Dashboard.css';
+import { useEffect, useState } from 'react';
 
 const Dashboard = () => {
-  const [summary, setSummary] = useState({
-    username: '',
-    total_spending_month: 0,
-    total_income_month: 0,
-    total_spending_today: 0,
-    total_income_today: 0,
-    average_daily_spend: 0,
-    items: [],
-    spending_trend: []
+  const [summary, setSummary] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [error, setError] = useState(null);
+  const [newTransaction, setNewTransaction] = useState({
+    description: '',
+    category: '',
+    amount: '',
+    type: 'Expense', // Default type
+    date: ''
   });
-  const [budget, setBudget] = useState(1000);
-  const [newItem, setNewItem] = useState({ description: '', amount: '', category: '', date: '', is_income: false });
-  const [editItem, setEditItem] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
 
+  // Fetch dashboard data on load
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          window.location.href = '/login';
-          return;
-        }
-        console.log('Fetching data with token:', token); // Debug token
-        const [summaryRes, categoriesRes] = await Promise.all([
-          axios.get('http://localhost:5000/dashboard/summary', { headers: { Authorization: token } }),
-          axios.get('http://localhost:5000/expenses/categories', { headers: { Authorization: token } })
-        ]);
-        console.log('Summary response:', summaryRes.data); // Debug response
-        console.log('Categories response:', categoriesRes.data); // Debug response
-        setSummary(summaryRes.data);
-        setCategories(categoriesRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setMessage('Error loading data. Check console or login status.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  const handleAddItem = async (e) => {
+  // ✅ Fetch dashboard data from API
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Authentication token is missing. Please log in again.");
+        return;
+      }
+
+      const response = await axios.get('http://127.0.0.1:5000/dashboard/summary', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',   
+          'Content-Type': 'application/json'  
+        }
+      });
+
+      console.log("API Response:", response.data);
+      setSummary(response.data);
+      setTransactions(response.data.transactions || []);
+    } catch (error) {
+      console.error('Error fetching dashboard summary:', error.response?.data || error);
+      setError("Failed to load dashboard data. Please try again later.");
+    }
+  };
+
+  // ✅ Handle input changes for new transaction
+  const handleInputChange = (e) => {
+    setNewTransaction({ ...newTransaction, [e.target.name]: e.target.value });
+  };
+
+  // ✅ Handle form submission for adding transactions
+  const handleAddTransaction = async (e) => {
     e.preventDefault();
-    if (!newItem.description || !newItem.amount || !newItem.category || !newItem.date) {
-      setMessage('All fields are required');
-      return;
-    }
+
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/expenses', { ...newItem, name: newItem.description }, {
-        headers: { Authorization: token }
+      if (!token) {
+        setError("Authentication token is missing. Please log in again.");
+        return;
+      }
+
+      const response = await axios.post('http://127.0.0.1:5000/transactions/add', newTransaction, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const response = await axios.get('http://localhost:5000/dashboard/summary', {
-        headers: { Authorization: token }
-      });
-      setSummary(response.data);
-      setNewItem({ description: '', amount: '', category: '', date: '', is_income: false });
-      setMessage('Item added successfully!');
-      setTimeout(() => setMessage(''), 3000);
+
+      console.log("Transaction added:", response.data);
+      fetchDashboardData(); // Refresh data
     } catch (error) {
-      console.error('Error adding item:', error.response || error);
-      setMessage('Error adding item. Check console.');
+      console.error('Error adding transaction:', error.response?.data || error);
+      setError("Failed to add transaction. Please try again.");
     }
   };
 
-  const handleUpdateItem = async (e) => {
-    e.preventDefault();
-    if (!editItem.description || !editItem.amount || !editItem.category || !editItem.date) {
-      setMessage('All fields are required');
-      return;
-    }
+  // ✅ Handle transaction deletion
+  const handleDeleteTransaction = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/expenses/${editItem.id}`, { ...editItem, name: editItem.description }, {
-        headers: { Authorization: token }
+      if (!token) {
+        setError("Authentication token is missing. Please log in again.");
+        return;
+      }
+
+      await axios.delete(`http://127.0.0.1:5000/transactions/delete/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const response = await axios.get('http://localhost:5000/dashboard/summary', {
-        headers: { Authorization: token }
-      });
-      setSummary(response.data);
-      setEditItem(null);
-      setMessage('Item updated successfully!');
-      setTimeout(() => setMessage(''), 3000);
+
+      console.log("Transaction deleted:", id);
+      fetchDashboardData(); // Refresh transactions list
     } catch (error) {
-      console.error('Error updating item:', error.response || error);
-      setMessage('Error updating item. Check console.');
+      console.error('Error deleting transaction:', error.response?.data || error);
+      setError("Failed to delete transaction. Please try again.");
     }
-  };
-
-  const handleDeleteItem = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/expenses/${id}`, {
-        headers: { Authorization: token }
-      });
-      const response = await axios.get('http://localhost:5000/dashboard/summary', {
-        headers: { Authorization: token }
-      });
-      setSummary(response.data);
-      setMessage('Item deleted successfully!');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      console.error('Error deleting item:', error.response || error);
-      setMessage('Error deleting item. Check console.');
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
-
-  const renderTrend = () => {
-    const trend = summary.spending_trend || [];
-    if (!trend.length) return <p>No trend data yet</p>;
-    const maxAmount = Math.max(...trend.map(t => t.total || 0), 1);
-    const width = 300;
-    const height = 100;
-    const points = trend.map((entry, i) => {
-      const x = (i / (trend.length - 1)) * width;
-      const y = height - ((entry.total || 0) / maxAmount) * height;
-      return `${x},${y}`;
-    }).join(' ');
-    return (
-      <svg width={width} height={height} className="trend-svg">
-        <polyline points={points} fill="none" stroke="#4CAF50" strokeWidth="2" />
-      </svg>
-    );
   };
 
   return (
-    <div className="dashboard">
-      <div className="sidebar">
-        <h2>Welcome, {summary.username || 'User'}</h2>
-        <nav>
-          <ul>
-            <li>Dashboard</li>
-            <li>Add Expense/Income</li>
-            <li>Categories</li>
-            <li>Export</li>
-          </ul>
-        </nav>
-        <button onClick={handleLogout} className="logout-btn">Logout</button>
-      </div>
-      <div className="main-content">
-        {loading && <div className="message">Loading...</div>}
-        {message && <div className="message">{message}</div>}
-        <div className="summary-stats">
-          <div className="card">
-            <h3>Month Spending</h3>
-            <p>${summary.total_spending_month.toFixed(2) || '0.00'}</p>
-          </div>
-          <div className="card">
-            <h3>Month Income</h3>
-            <p>${summary.total_income_month.toFixed(2) || '0.00'}</p>
-          </div>
-          <div className="card">
-            <h3>Today Spending</h3>
-            <p>${summary.total_spending_today.toFixed(2) || '0.00'}</p>
-          </div>
-          <div className="card">
-            <h3>Today Income</h3>
-            <p>${summary.total_income_today.toFixed(2) || '0.00'}</p>
-          </div>
-          <div className="card">
-            <h3>Avg Daily Spend</h3>
-            <p>${summary.average_daily_spend.toFixed(2) || '0.00'}</p>
-          </div>
-        </div>
-        <div className="items-list">
-          <h2>Expenses & Income</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.items && summary.items.length > 0 ? (
-                summary.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.date}</td>
-                    <td>{item.description}</td>
-                    <td>{item.category || 'Uncategorized'}</td>
-                    <td>${item.amount.toFixed(2)}</td>
-                    <td>{item.is_income ? 'Income' : 'Expense'}</td>
-                    <td>
-                      <button onClick={() => setEditItem(item)} className="edit-btn">Edit</button>
-                      <button onClick={() => handleDeleteItem(item.id)} className="delete-btn">Delete</button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan="6">No items yet</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="spending-trend">
-          <h2>Spending Trend (Last 30 Days)</h2>
-          {renderTrend()}
-        </div>
-        <div className="budget-goal">
-          <h2>Budget Goal</h2>
-          <div className="thermometer">
-            <div
-              className="progress"
-              style={{
-                height: `${Math.min((summary.total_spending_month / budget) * 100, 100)}%`,
-                backgroundColor: (summary.total_spending_month / budget) > 0.8 ? 'red' : 'green'
-              }}
-            ></div>
-          </div>
-          <input
-            type="number"
-            value={budget}
-            onChange={(e) => setBudget(Math.max(1, e.target.value))}
-            placeholder="Set Budget"
-          />
-          <p>${summary.total_spending_month.toFixed(2) || '0.00'} of ${budget}</p>
-        </div>
-        <div className="manual-item">
-          <h2>{editItem ? 'Edit Item' : 'Add Expense/Income'}</h2>
-          <form onSubmit={editItem ? handleUpdateItem : handleAddItem}>
-            <input
-              type="date"
-              value={editItem ? editItem.date : newItem.date}
-              onChange={(e) => (editItem ? setEditItem({ ...editItem, date: e.target.value }) : setNewItem({ ...newItem, date: e.target.value }))}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Description"
-              value={editItem ? editItem.description : newItem.description}
-              onChange={(e) => (editItem ? setEditItem({ ...editItem, description: e.target.value }) : setNewItem({ ...newItem, description: e.target.value }))}
-              required
-            />
-            <select
-              value={editItem ? editItem.category : newItem.category}
-              onChange={(e) => (editItem ? setEditItem({ ...editItem, category: e.target.value }) : setNewItem({ ...newItem, category: e.target.value }))}
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.length > 0 ? (
-                categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))
-              ) : (
-                <option disabled>No categories available</option>
-              )}
-            </select>
-            <input
-              type="number"
-              placeholder="Amount"
-              value={editItem ? editItem.amount : newItem.amount}
-              onChange={(e) => (editItem ? setEditItem({ ...editItem, amount: e.target.value }) : setNewItem({ ...newItem, amount: e.target.value }))}
-              step="0.01"
-              required
-            />
-            <label>
-              <input
-                type="checkbox"
-                checked={editItem ? editItem.is_income : newItem.is_income}
-                onChange={(e) => (editItem ? setEditItem({ ...editItem, is_income: e.target.checked }) : setNewItem({ ...newItem, is_income: e.target.checked }))}
-              />
-              Income
-            </label>
-            <button type="submit" className={editItem ? 'update-btn' : 'add-btn'}>{editItem ? 'Update' : 'Add'}</button>
-            {editItem && <button type="button" onClick={() => setEditItem(null)} className="cancel-btn">Cancel</button>}
-          </form>
-        </div>
-      </div>
+    <div>
+      <h1>Welcome back, {summary?.username || "User"}!</h1>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <p>Total Balance: {summary?.total_balance || "N/A"}</p>
+      <p>Monthly Income: {summary?.total_income || "N/A"}</p>
+      <p>Monthly Expenses: {summary?.total_expenses || "N/A"}</p>
+
+      <h2>Add Transaction</h2>
+      <form onSubmit={handleAddTransaction}>
+        <input type="text" name="description" placeholder="Description" value={newTransaction.description} onChange={handleInputChange} required />
+        <input type="text" name="category" placeholder="Category" value={newTransaction.category} onChange={handleInputChange} required />
+        <input type="number" name="amount" placeholder="Amount" value={newTransaction.amount} onChange={handleInputChange} required />
+        <input type="date" name="date" value={newTransaction.date} onChange={handleInputChange} required />
+        <select name="type" value={newTransaction.type} onChange={handleInputChange}>
+          <option value="Expense">Expense</option>
+          <option value="Income">Income</option>
+        </select>
+        <button type="submit">Add</button>
+      </form>
+
+      <h2>Transactions</h2>
+      <ul>
+        {transactions.length > 0 ? (
+          transactions.map((t) => (
+            <li key={t.id}>
+              {t.date} - {t.description} ({t.category || "Uncategorized"}): {t.amount} ({t.type})
+              <button onClick={() => handleDeleteTransaction(t.id)}>Delete</button>
+            </li>
+          ))
+        ) : (
+          <p>No transactions available.</p>
+        )}
+      </ul>
     </div>
   );
 };
