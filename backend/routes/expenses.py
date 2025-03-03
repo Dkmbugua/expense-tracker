@@ -5,7 +5,7 @@ from datetime import datetime
 
 expenses_bp = Blueprint('expenses', __name__)
 
-# ✅ Fetch All Transactions (Expenses & Income)
+# Fetch All Transactions (Expenses & Income)
 @expenses_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_expenses():
@@ -34,8 +34,7 @@ def get_expenses():
 
     return jsonify(transactions), 200
 
-
-# ✅ Add New Transaction (Expense or Income)
+# Add New Transaction (Expense or Income)
 @expenses_bp.route('/add', methods=['POST'])
 @jwt_required()
 def add_transaction():
@@ -79,8 +78,7 @@ def add_transaction():
         "type": "Income" if is_income else "Expense"
     }), 201
 
-
-# ✅ Delete a Transaction
+# Delete a Transaction
 @expenses_bp.route('/delete/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction(id):
@@ -99,8 +97,7 @@ def delete_transaction(id):
     db.session.commit()
     return jsonify({"message": "Transaction deleted successfully"}), 200
 
-
-# ✅ Fetch Expenses by Category
+# Fetch Expenses by Category
 @expenses_bp.route('/categories', methods=['GET'])
 @jwt_required()
 def get_expenses_by_category():

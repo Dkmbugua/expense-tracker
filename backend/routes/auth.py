@@ -5,7 +5,6 @@ from backend.models import User
 from .. import db
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
-
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/status', methods=['GET'])
@@ -22,9 +21,8 @@ def login():
     if user and check_password_hash(user.password, data['password']):
         access_token = create_access_token(identity=user.id)
         return jsonify({"message": "Login successful", "token": access_token})
-    
-    return jsonify({"message": "Invalid credentials"}), 401
 
+    return jsonify({"message": "Invalid credentials"}), 401
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

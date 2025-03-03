@@ -5,7 +5,6 @@ from backend.models import User, Expense, Income, Category
 from .. import db
 from datetime import datetime, timedelta
 
-# Define Blueprint for dashboard
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/summary', methods=['GET'])
@@ -13,10 +12,8 @@ dashboard_bp = Blueprint('dashboard', __name__)
 def get_dashboard_summary():
     user_id = get_jwt_identity()
 
-    # 🔍 Debugging log
     print(f"Fetching dashboard summary for user: {user_id}")
 
-    # Ensure user exists
     user = User.query.get(user_id)
     if not user:
         return jsonify({"message": "User not found"}), 404
@@ -24,7 +21,6 @@ def get_dashboard_summary():
     today = datetime.utcnow().date()
     start_of_month = today.replace(day=1)
 
-    # Fetch total expenses & income for the month
     total_expenses = db.session.query(db.func.sum(Expense.amount)).filter(
         Expense.user_id == user_id,
         Expense.date >= start_of_month
@@ -37,7 +33,6 @@ def get_dashboard_summary():
 
     total_balance = total_income - total_expenses
 
-    # Fetch today's expenses & income
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
     today_expenses = db.session.query(db.func.sum(Expense.amount)).filter(
@@ -50,7 +45,6 @@ def get_dashboard_summary():
         Income.date >= today_start
     ).scalar() or 0
 
-    # Fetch expenses by category
     category_expenses = db.session.query(
         Category.name, db.func.sum(Expense.amount)
     ).join(Expense).filter(
@@ -60,7 +54,6 @@ def get_dashboard_summary():
 
     category_data = {name: total for name, total in category_expenses}
 
-    # Fetch transactions
     transactions = (
         db.session.query(Expense)
         .filter_by(user_id=user_id)
@@ -95,7 +88,6 @@ def get_dashboard_summary():
         "transactions": transaction_list
     }
 
-    # 🔍 Debugging log
     print(f"Dashboard Summary Data: {summary}")
 
     return jsonify(summary), 200

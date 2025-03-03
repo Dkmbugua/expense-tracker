@@ -18,7 +18,7 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // ✅ Fetch dashboard data from API
+  // Fetch dashboard data from API
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -44,12 +44,12 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ Handle input changes for new transaction
+  // Handle input changes for new transaction
   const handleInputChange = (e) => {
     setNewTransaction({ ...newTransaction, [e.target.name]: e.target.value });
   };
 
-  // ✅ Handle form submission for adding transactions
+  // Handle form submission for adding transactions
   const handleAddTransaction = async (e) => {
     e.preventDefault();
 
@@ -72,7 +72,7 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ Handle transaction deletion
+  // Handle transaction deletion
   const handleDeleteTransaction = async (id) => {
     try {
       const token = localStorage.getItem('token');

@@ -87,18 +87,18 @@ const Expenses = () => {
       </form>
 
       <h2>Transactions</h2>
-<ul>
-  {transactions.length > 0 ? (
-    transactions.map((t) => (
-      <li key={t.id}>
-        {t.date} - {t.name} ({t.category ? t.category : "Uncategorized"}): {t.amount} ({t.type})
-        <button onClick={() => handleDelete(t.id)}>Delete</button>
-      </li>
-    ))
-  ) : (
-    <p>No transactions available.</p>
-  )}
-</ul>
+      <ul>
+        {transactions.length > 0 ? (
+          transactions.map((t) => (
+            <li key={t.id}>
+              {t.date} - {t.name} ({t.category ? t.category : "Uncategorized"}): {t.amount} ({t.type})
+              <button onClick={() => handleDelete(t.id)}>Delete</button>
+            </li>
+          ))
+        ) : (
+          <p>No transactions available.</p>
+        )}
+      </ul>
 
     </div>
   );

@@ -6,31 +6,28 @@ from flask_migrate import Migrate
 import os
 from flask_jwt_extended import JWTManager
 
-db = SQLAlchemy()  # ✅ Ensure this is the ONLY instance of SQLAlchemy
+db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
-jwt = JWTManager()  # ✅ Initialize JWT
+jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__, static_folder='../frontend/build', static_url_path='/')
 
-    # ✅ Correct JWT configuration
-    
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hour expiration
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../database/expense_tracker.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.urandom(24).hex()
     app.config['SESSION_TYPE'] = 'filesystem'
 
-    db.init_app(app)  # ✅ Initialize DB first
-    jwt.init_app(app)  # ✅ Initialize JWT AFTER setting configs
+    db.init_app(app)
+    jwt.init_app(app)
     login_manager.init_app(app)
     CORS(app, supports_credentials=True)
     migrate = Migrate(app, db)
 
-    from .models import User  # ✅ Move User import after db.init_app(app)
+    from .models import User  # Move User import after db.init_app(app)
 
-    # ✅ Import Blueprints
     from .routes.auth import auth_bp
     from .routes.expenses import expenses_bp
     from .routes.dashboard import dashboard_bp
